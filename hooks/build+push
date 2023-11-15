@@ -50,19 +50,21 @@ for tag in $(_releases "$GH_PROJECT"); do
     # library image.
     if [ "$revision" != "$SOURCE_COMMIT" ]; then
       echo "============== No ${DOCKER_REPO}:$tag at $SOURCE_COMMIT"
-      docker buildx build \
+      # Prepare arguments for docker buildx.
+      set -- \
+        --tag "${DOCKER_REPO}:$tag" \
         --platform "$PLATFORMS" \
         --build-arg CSHARPIER_VERSION="$tag" \
-        --tag "${DOCKER_REPO}:$tag" \
         --label "org.opencontainers.image.revision=$SOURCE_COMMIT" \
-        --push \
-        --load \
-        .
+        --push
+      # Add latest tag when relevant
       if [ "$tag" = "$_latest" ]; then
-        echo "============== Tagging ${DOCKER_REPO}:$tag as latest"
-        docker tag "${DOCKER_REPO}:$tag" "${DOCKER_REPO}:latest"
-        docker push "${DOCKER_REPO}:latest"
+        set -- \
+          --tag "${DOCKER_REPO}:latest" \
+          "$@"
       fi
+      # build (and push) according to arguments and at the right tags.
+      docker buildx build "$@" .
     fi
   fi
 done
