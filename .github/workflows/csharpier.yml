@@ -27,12 +27,12 @@ jobs:
       -
         name: Build GHCR images
         env:
-          DOCKER_REPO: ghcr.io/${{ github.repository_owner_id }}
+          DOCKER_REPO: ghcr.io/${{ github.repository }}
           SOURCE_COMMIT: ${{ github.sha }}
         run: ./hooks/build
       -
         name: Push GHCR images
         env:
-          DOCKER_REPO: ghcr.io/${{ github.repository_owner_id }}
+          DOCKER_REPO: ghcr.io/${{ github.repository }}
           SOURCE_COMMIT: ${{ github.sha }}
         run: ./hooks/push
