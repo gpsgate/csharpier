@@ -39,6 +39,7 @@ for tag in $(github_releases -r '[0-9]+\.[0-9]+\.[0-9]+' "$GH_PROJECT"); do
         --build-arg CSHARPIER_VERSION="$tag" \
         --tag "${DOCKER_REPO}:$tag" \
         --label "org.opencontainers.image.revision=$SOURCE_COMMIT" \
+        --load \
         .
     fi
   fi
