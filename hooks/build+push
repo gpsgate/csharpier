@@ -18,8 +18,24 @@ GH_PROJECT=belav/csharpier
 # Login at the Docker hub to be able to access info about the image.
 token=$(img_auth "$DOCKER_REPO")
 
+_releases() {
+  # Ask GH for the list of releases matching the tag pattern, then fool the sort
+  # -V option to properly understand semantic versioning. Arrange for latest
+  # version to be at the top. See: https://stackoverflow.com/a/40391207
+  github_releases -r 'v?[0-9]+\.[0-9]+\.[0-9]+' "$1" |
+    sed '/-/!{s/$/_/}' |
+    sort -Vr |
+    sed 's/_$//'
+}
+
 echo "============== Gettings latest releases for $GH_PROJECT at github"
-for tag in $(github_releases -r '[0-9]+\.[0-9]+\.[0-9]+' "$GH_PROJECT"); do
+_latest=
+for tag in $(_releases "$GH_PROJECT"); do
+  # Latest is the first tag that we encounter.
+  if [ -z "$_latest" ]; then
+    _latest="$tag"
+  fi
+
   if [ "$(img_version "${tag#v}")" -ge "$(img_version "$MINVER")" ]; then
     # Get the revision out of the org.opencontainers.image.revision label, this
     # will be the label where we store information about this repo (it cannot be
@@ -41,6 +57,11 @@ for tag in $(github_releases -r '[0-9]+\.[0-9]+\.[0-9]+' "$GH_PROJECT"); do
         --label "org.opencontainers.image.revision=$SOURCE_COMMIT" \
         --push \
         .
+      if [ "$tag" = "$_latest" ]; then
+        echo "============== Tagging ${DOCKER_REPO}:$tag as latest"
+        docker tag "${DOCKER_REPO}:$tag" "${DOCKER_REPO}:latest"
+        docker push "${DOCKER_REPO}:latest"
+      fi
     fi
   fi
 done

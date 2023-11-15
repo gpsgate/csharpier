@@ -13,4 +13,4 @@
     -w /src
     --rm
     -t
-    ghcr.io/gpsgate/csharpier:0.26.1
+    ghcr.io/gpsgate/csharpier:latest
