@@ -37,12 +37,12 @@ jobs:
           driver-opts: image=moby/buildkit:master
           platforms: linux/arm64,linux/arm,linux/amd64
       -
-        name: Build GHCR images
+        name: Build and Push GHCR images
         env:
           DOCKER_REPO: ghcr.io/${{ github.repository }}
           SOURCE_COMMIT: ${{ github.sha }}
           PLATFORMS: ${{ steps.buildx.outputs.platforms }}
-        run: ./hooks/build
+        run: ./hooks/build+push
       -
         name: Push GHCR images
         env:

@@ -6,7 +6,7 @@ DOCKER_REPO=${DOCKER_REPO:-"efrecon/csharpier"}
 SOURCE_COMMIT=${SOURCE_COMMIT:-$(git log --no-decorate|grep '^commit'|head -n 1| awk '{print $2}')}
 PLATFORMS=${PLATFORMS:-"linux/amd64"}
 
-# Minimum version of chsarpier to build for.
+# Minimum version of csharpier to build for.
 MINVER=${MINVER:-0.18.0}
 
 # You shouldn't really need to have to modify the following variables.
@@ -39,7 +39,7 @@ for tag in $(github_releases -r '[0-9]+\.[0-9]+\.[0-9]+' "$GH_PROJECT"); do
         --build-arg CSHARPIER_VERSION="$tag" \
         --tag "${DOCKER_REPO}:$tag" \
         --label "org.opencontainers.image.revision=$SOURCE_COMMIT" \
-        --load \
+        --push \
         .
     fi
   fi
