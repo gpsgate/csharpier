@@ -6,7 +6,6 @@ on:
     branches:
       - 'master'
       - 'main'
-      - 'feature/*'
   schedule:
       - cron: "0 0 * * *"
 
@@ -43,9 +42,3 @@ jobs:
           SOURCE_COMMIT: ${{ github.sha }}
           PLATFORMS: ${{ steps.buildx.outputs.platforms }}
         run: ./hooks/build+push
-      -
-        name: Push GHCR images
-        env:
-          DOCKER_REPO: ghcr.io/${{ github.repository }}
-          SOURCE_COMMIT: ${{ github.sha }}
-        run: ./hooks/push
