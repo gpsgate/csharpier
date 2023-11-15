@@ -1,0 +1,16 @@
+- id: csharpier
+  name: Run CSharpier on C# files
+  description: CSharpier is an opinionated C# formatter inspired by Prettier.
+  stages: 
+    - pre-commit
+    - pre-merge-commit
+    - pre-push
+    - manual
+  types:
+    - c#
+  language: docker_image
+  entry: >-
+    -w /src
+    --rm
+    -t
+    ghcr.io/gpsgate/csharpier:0.26.1
