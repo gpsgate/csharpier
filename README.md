@@ -4,7 +4,7 @@ This project implements:
 + A Docker [image] that runs any published version of [CSharpier].
 + An automated [workflow] to build and publish [images] when new versions of
   CSharpier are released.
-+ A [pre-commit] [hook] to run CSharpier on all staged files.
++ A [pre-commit] [hook] to run the latest CSharpier on all staged files.
 
   [image]: ./Dockerfile
   [CSharpier]: https://github.com/belav/csharpier
@@ -51,3 +51,31 @@ tree in a directory that you will have to ignore from version control.
 ```
 
   [history]: https://github.com/gpsgate/csharpier/commits/main
+
+## Version Capture
+
+The main Docker [image] is parameterised by a number of options/variables. These
+options will be set at build time from the [workflow] and its main [build]
+implementation script. The [build] script uses the GitHub API to fetch the list
+of known versions of [CSharpier] at the time of the run and will automatically
+build and push an image for each of them. In addition, the script generates a
+`latest` tag for the latest version of CSharpier. Finally, it is able to adapt
+to historical changes in the CSharpier dependencies (net7/net8 SDK).
+
+The [workflow] is set to run once a week, and will only build and push new
+images if either this project has changed or a new version of CSharpier has been
+released.
+
+  [build]: ./hooks/build+push
+
+## Development
+
+When developing this project, you can run and test its main [build] logic
+without using the GitHub Actions workflow. To do so, you can run the following
+command from the root of your tree. The command will perform all the steps
+described [above](#version-capture), only making the built images available to
+your local installation.
+
+```bash
+BUILDX_OPERATION=--load ./hooks/build+push
+```
