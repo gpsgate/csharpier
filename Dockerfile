@@ -1,9 +1,10 @@
-FROM mcr.microsoft.com/dotnet/sdk:7.0 as build
+ARG DOTNET_VERSION=7.0
+FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} as build
 ARG CSHARPIER_VERSION=0.26.1
 
 RUN dotnet tool install --tool-path /tmp/tools csharpier --version ${CSHARPIER_VERSION}
 
-FROM mcr.microsoft.com/dotnet/runtime:7.0
+FROM mcr.microsoft.com/dotnet/runtime:${DOTNET_VERSION}
 
 # Metadata
 LABEL MAINTAINER=efrecon+github@gmail.com

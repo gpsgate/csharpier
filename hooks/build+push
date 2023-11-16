@@ -11,6 +11,7 @@ MINVER=${MINVER:-0.18.0}
 
 # You shouldn't really need to have to modify the following variables.
 GH_PROJECT=belav/csharpier
+BUILDX_OPERATION=${BUILDX_OPERATION:-"--push"};   # Change to --load to build only.
 
 # shellcheck disable=SC1091
 . "$(dirname "$0")/reg-tags/image_api.sh"
@@ -56,11 +57,18 @@ for tag in $(_releases "$GH_PROJECT"); do
         --platform "$PLATFORMS" \
         --build-arg CSHARPIER_VERSION="$tag" \
         --label "org.opencontainers.image.revision=$SOURCE_COMMIT" \
-        --push
+        $BUILDX_OPERATION
       # Add latest tag when relevant
       if [ "$tag" = "$_latest" ]; then
         set -- \
           --tag "${DOCKER_REPO}:latest" \
+          "$@"
+      fi
+      # Fix dotnet version, migrate to LTS 8.0 starting from 0.26.2. See:
+      # https://github.com/belav/csharpier/releases/tag/0.26.2
+      if [ "$(img_version "${tag#v}")" -ge "$(img_version "0.26.2")" ]; then
+        set -- \
+          --build-arg DOTNET_VERSION="8.0" \
           "$@"
       fi
       # build (and push) according to arguments and at the right tags.
