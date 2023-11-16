@@ -1,10 +1,12 @@
 # CSharpier in Docker
 
 This project implements:
-+ A Docker [image] that runs any published version of [CSharpier].
-+ An automated [workflow] to build and publish [images] when new versions of
-  CSharpier are released.
-+ A [pre-commit] [hook] to run the latest CSharpier on all staged files.
++ A non-root Docker [image] that runs any published version of [CSharpier].
++ An automated [workflow] to build and publish multi-platform [images] when new
+  versions of CSharpier are [released](#version-capture). Images are tagged with
+  the version of [CSharpier]. The image tagged `latest` always points to the
+  latest release of [CSharpier] at the time of the run.
++ A [pre-commit] [hook] to run the `latest` CSharpier on all staged files.
 
   [image]: ./Dockerfile
   [CSharpier]: https://github.com/belav/csharpier
@@ -18,8 +20,10 @@ This project implements:
 ### From Docker
 
 To use the Docker image, run the following command from the root of your tree.
-The example below just prints the help, replace the `--help` flag with any
-arguments and [options] accepted by CSharpier.
+The command maps your current directory to the container's working directory and
+performs user translation, so that CSharpier can access your files. The example
+below just prints the help, replace the `--help` flag with any arguments and
+[options] accepted by CSharpier.
 
 ```bash
 docker run \
@@ -43,7 +47,7 @@ tree in a directory that you will have to ignore from version control.
 
 ```yaml
   - repo: https://github.com/gpsgate/csharpier
-    rev: a216c9609b77b324988ab3b74e5bf8d0aae50321
+    rev: 3dc4e3e32100c557a33a61775d18d851c4a35e82
     hooks:
       - id: csharpier
         args:
