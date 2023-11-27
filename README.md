@@ -66,7 +66,7 @@ build and push an image for each of them. In addition, the script generates a
 `latest` tag for the latest version of CSharpier. Finally, it is able to adapt
 to historical changes in the CSharpier dependencies (net7/net8 SDK).
 
-The [workflow] is set to run once a week, and will only build and push new
+The [workflow] is set to run twice a week, and will only build and push new
 images if either this project has changed or a new version of CSharpier has been
 released.
 
