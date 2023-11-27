@@ -17,9 +17,6 @@ OCINS="org.opencontainers.image"
 # shellcheck disable=SC1091
 . "$(dirname "$0")/reg-tags/image_api.sh"
 
-# Login at the Docker hub to be able to access info about the image.
-token=$(img_auth "$DOCKER_REPO")
-
 _releases() {
   # Ask GH for the list of releases matching the tag pattern, then fool the sort
   # -V option to properly understand semantic versioning. Arrange for latest
@@ -71,6 +68,8 @@ _iso8601() {
 }
 
 
+# Return the UNIX timestamp of the docker image passed as argument. This
+# downloads the image in all cases.
 _docker_timestamp() {
   # Remember if image was already present.
   _present=0
@@ -80,7 +79,7 @@ _docker_timestamp() {
 
   # Pull image in all cases, we want to have the latest known pushed image for
   # that tag.
-  docker image pull --quiet "$1" || true
+  docker image pull --quiet "$1" >/dev/null || true
 
   # Compute and print the timestamp of the image. 0 if the image does not exist.
   _iso_date=$(docker image inspect --format '{{.Created}}' "$1")
@@ -91,7 +90,7 @@ _docker_timestamp() {
   fi
 
   # Remove the image if it was not present before.
-  if ! $_present; then
+  if [ "$_present" = "0" ]; then
     docker image rm "$1" >/dev/null 2>&1
   fi
 }
