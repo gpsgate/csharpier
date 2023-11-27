@@ -68,9 +68,14 @@ to historical changes in the CSharpier dependencies (net7/net8 SDK).
 
 The [workflow] is set to run twice a week, and will only build and push new
 images if either this project has changed or a new version of CSharpier has been
-released.
+released. Decisions are made based on the [history] of the repository and the
+build date of the target image: if the build date of the target image is newer
+than the last commit to the repository, the image is not rebuilt. This is a
+good-enough approximation for the scenario where the [workflow] is triggered at
+few regular intervals and the [CSharpier] project is not updated too often.
 
   [build]: ./hooks/build+push
+  [history]: https://github.com/gpsgate/csharpier/commits/main
 
 ## Development
 
