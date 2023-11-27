@@ -139,6 +139,8 @@ for tag in $(_releases "$GH_PROJECT"); do
       fi
       # build (and push) according to arguments and at the right tags.
       docker buildx build "$@" .
+    else
+      echo "!!!!!!!!!!!!!! Image ${DOCKER_REPO}:$tag newer than ${SOURCE_COMMIT}, skipping"
     fi
   fi
 done
