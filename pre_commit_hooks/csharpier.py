@@ -139,12 +139,14 @@ def run_csharpier(options: Sequence[str]) -> bool:
   return False
 
 def main(argv: Sequence[str] | None = None) -> int:
-  parser = argparse.ArgumentParser()
-  parser.add_argument('remainder', nargs=argparse.REMAINDER)
+  parser = argparse.ArgumentParser(
+    description='Run csharpier, falls back to running it as a Docker container.'
+  )
+  parser.add_argument('options', nargs=argparse.REMAINDER)
   args = parser.parse_args(argv)
 
-  if not run_csharpier(args.remainder):
-    if not run_docker(args.remainder):
+  if not run_csharpier(args.options):
+    if not run_docker(args.options):
       return 1
   return 0
 
