@@ -42,7 +42,6 @@ class CalledProcessError(RuntimeError):
     return self.__bytes__().decode()
 
 def cmd_output(*cmd: str, retcode: int | None = 0, **kwargs: Any) -> str:
-  print(f'Running: {cmd}', file=sys.stderr)
   kwargs.setdefault('stdout', subprocess.PIPE)
   kwargs.setdefault('stderr', subprocess.PIPE)
   proc = subprocess.Popen(cmd, **kwargs)
