@@ -5,7 +5,7 @@ import os
 import subprocess
 import json
 import sys
-from typing import Sequence
+from typing import Any, Sequence
 
 class CalledProcessError(RuntimeError):
   def __init__(
