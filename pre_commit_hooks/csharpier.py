@@ -135,11 +135,10 @@ def run_csharpier(argv: Sequence[str] | None = None) -> bool:
     print('dotnet tool "csharpier" is not installed. Will run through Docker. You can also install it using "dotnet tool install -g dotnet-csharpier".', file=sys.stderr)
   return False
 
-def main(argv: Sequence[str] | None = None) -> int:
-  if not argv:
-    argv = ('--help')
-  if not run_csharpier(argv):
-    if not run_docker(argv):
+def main() -> int:
+  args = sys.argv[1:]
+  if not run_csharpier(args):
+    if not run_docker(args):
       return 1
   return 0
 
