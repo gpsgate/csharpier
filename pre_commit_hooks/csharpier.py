@@ -98,9 +98,7 @@ def get_docker_user() -> tuple[str, ...]:  # pragma: win32 no cover
   except AttributeError:
     return ()
 
-def run_docker(options: Sequence[str]) -> bool:
-  if not options:
-    return False
+def run_docker(argv: Sequence[str] | None = None) -> bool:
   try:
     out = cmd_output('docker', 'run',
                         '--rm',
@@ -108,7 +106,7 @@ def run_docker(options: Sequence[str]) -> bool:
                         '-v', f'{_get_docker_path(os.getcwd())}:/src:rw,Z',
                         '-w', '/src',
                         '-t',
-                        'ghcr.io/gpsgate/csharpier', *options)
+                        'ghcr.io/gpsgate/csharpier', '--', *argv)
     if out:
       print(out)
     return True
@@ -118,14 +116,12 @@ def run_docker(options: Sequence[str]) -> bool:
     if e.stdout:
       print(e.stdout)
   except FileNotFoundError:
-    print('docker is not installed. Ran out of options. Giving up!')
+    print('docker is not installed. Ran out of options. Giving up!', file=sys.stderr)
   return False
 
-def run_csharpier(options: Sequence[str]) -> bool:
-  if not options:
-    return False
+def run_csharpier(argv: Sequence[str] | None = None) -> bool:
   try:
-    out = cmd_output('dotnet', 'csharpier', *options)
+    out = cmd_output('dotnet', 'csharpier', '--', *argv)
     if out:
       print(out)
     return True
@@ -135,18 +131,14 @@ def run_csharpier(options: Sequence[str]) -> bool:
     if e.stdout:
       print(e.stdout)
   except FileNotFoundError:
-    print('dotnet tool "csharpier" is not installed. Will run through Docker. You can also install it using "dotnet tool install -g dotnet-csharpier".')
+    print('dotnet tool "csharpier" is not installed. Will run through Docker. You can also install it using "dotnet tool install -g dotnet-csharpier".', file=sys.stderr)
   return False
 
 def main(argv: Sequence[str] | None = None) -> int:
-  parser = argparse.ArgumentParser(
-    description='Run csharpier, falls back to running it as a Docker container.'
-  )
-  parser.add_argument('options', nargs=argparse.REMAINDER)
-  args = parser.parse_args(argv)
-
-  if not run_csharpier(args.options):
-    if not run_docker(args.options):
+  if not argv:
+    argv = ('--help')
+  if not run_csharpier(argv):
+    if not run_docker(argv):
       return 1
   return 0
 
