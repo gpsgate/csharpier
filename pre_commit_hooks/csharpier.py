@@ -107,7 +107,7 @@ def run_docker(argv: Sequence[str] | None = None) -> bool:
                         '-v', f'{_get_docker_path(os.getcwd())}:/src:rw,Z',
                         '-w', '/src',
                         '-t',
-                        'ghcr.io/gpsgate/csharpier', '--', *argv)
+                        'ghcr.io/gpsgate/csharpier', *argv)
     if out:
       print(out)
     return True
@@ -122,7 +122,7 @@ def run_docker(argv: Sequence[str] | None = None) -> bool:
 
 def run_csharpier(argv: Sequence[str] | None = None) -> bool:
   try:
-    out = cmd_output('dotnet', 'csharpier', '--', *argv)
+    out = cmd_output('dotnet', 'csharpier', *argv)
     if out:
       print(out)
     return True
