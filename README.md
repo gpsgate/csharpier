@@ -6,7 +6,10 @@ This project implements:
   versions of CSharpier are [released](#version-capture). Images are tagged with
   the version of [CSharpier]. The image tagged `latest` always points to the
   latest release of [CSharpier] at the time of the run.
-+ A [pre-commit] [hook] to run the `latest` CSharpier on all staged files.
++ A [pre-commit] [hook] to run [CSharpier] on the files passed to `pre-commit`.
+  The hook is a forgiving wrapper [implemented] in python: It will attempt to
+  run `csharpier` using `dotnet` first. If that fails, it will attempt to run it
+  using the `latest` Docker [image][images] built by this project.
 
   [image]: ./Dockerfile
   [CSharpier]: https://github.com/belav/csharpier
@@ -14,6 +17,7 @@ This project implements:
   [images]: https://github.com/gpsgate/csharpier/pkgs/container/csharpier
   [pre-commit]: https://pre-commit.com/
   [hook]: ./.pre-commit-hooks.yaml
+  [implemented]: ./pre_commit_hooks/csharpier.py
 
 ## Usage
 
@@ -42,7 +46,7 @@ docker run \
 Add the following to your `.pre-commit-config.yaml` file. You might want to
 check the latest version of the repository [here][history] and change the `rev`
 key. You might also want to remove the `--no-cache` argument, in which case
-CSharpier will store file-releted information in its cache at the root of your
+CSharpier will store file-related information in its cache at the root of your
 tree in a directory that you will have to ignore from version control.
 
 ```yaml

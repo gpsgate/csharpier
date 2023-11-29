@@ -8,9 +8,5 @@
     - manual
   types:
     - c#
-  language: docker_image
-  entry: >-
-    -w /src
-    --rm
-    -t
-    ghcr.io/gpsgate/csharpier:latest
+  language: python
+  entry: csharpier
