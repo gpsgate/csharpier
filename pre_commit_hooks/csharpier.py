@@ -125,7 +125,7 @@ def run_csharpier(options: Sequence[str]) -> bool:
   if not options:
     return False
   try:
-    out = cmd_output('dotnet', 'tool', 'run', 'dotnet-csharpier', '--', *options)
+    out = cmd_output('dotnet', 'csharpier', '--', *options)
     if out:
       print(out)
     return True
