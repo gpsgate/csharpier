@@ -42,6 +42,11 @@ class CalledProcessError(RuntimeError):
     return self.__bytes__().decode()
 
 def cmd_output(*cmd: str, retcode: int | None = 0, **kwargs: Any) -> str:
+  if os.environ.get('PRE_COMMIT_CSHARPIER_HOOK_DEBUG'):
+    print(f'Running command: {cmd} with kwargs: {kwargs}', file=sys.stderr)
+    if os.environ.get('PRE_COMMIT_CSHARPIER_HOOK_DEBUG') == '2':
+      for k, v in os.environ.items():
+        print(f'\tENV: {k}={v}', file=sys.stderr)
   kwargs.setdefault('stdout', subprocess.PIPE)
   kwargs.setdefault('stderr', subprocess.PIPE)
   proc = subprocess.Popen(cmd, **kwargs)
@@ -100,13 +105,14 @@ def get_docker_user() -> tuple[str, ...]:  # pragma: win32 no cover
 
 def run_docker(argv: Sequence[str] | None = None) -> bool:
   try:
+    image = os.environ.get('PRE_COMMIT_CSHARPIER_HOOK_DOCKER', 'ghcr.io/gpsgate/csharpier')
     out = cmd_output('docker', 'run',
                         '--rm',
                         *get_docker_user(),
                         '-v', f'{_get_docker_path(os.getcwd())}:/src:rw,Z',
                         '-w', '/src',
                         '-t',
-                        'ghcr.io/gpsgate/csharpier', *argv)
+                        image, *argv)
     if out:
       print(out)
     return True

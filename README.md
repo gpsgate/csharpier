@@ -58,9 +58,18 @@ tree in a directory that you will have to ignore from version control.
           - --no-cache
 ```
 
+The pre-commit hook can be controlled using two environment variables:
+
++ `PRE_COMMIT_HOOK_CSHARPIER_DEBUG` will log the commands executed by the hook
+  onto `stderr` as soon as the variable is set. If it is set to `2`, the hook
+  will also log the list of environment variables at the time of the call.
++ `PRE_COMMIT_HOOK_CSHARPIER_DOCKER` will override the default `latest` image.
+  You can use it to run a specific version of CSharpier when fallbacking to
+  Docker, e.g. `ghcr.io/gpsgate/csharpier:0.26.4`.
+
   [history]: https://github.com/gpsgate/csharpier/commits/main
 
-## Version Capture
+## Version Capture (Docker)
 
 The main Docker [image] is parameterised by a number of options/variables. These
 options will be set at build time from the [workflow] and its main [build]
