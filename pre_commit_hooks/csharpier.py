@@ -148,12 +148,12 @@ def main() -> int:
   methods = os.environ.get('PRE_COMMIT_HOOK_CSHARPIER_SEARCH', 'bin tool docker')
   for m in methods.split():
     if m.lower() == 'bin' and run_csharpier(['dotnet-csharpier'], args):
-      return 1
+      return 0
     if m.lower() == 'tool' and run_csharpier(['dotnet', 'csharpier'], args):
-      return 1
+      return 0
     if m.lower() == 'docker' and run_docker(args):
-      return 1
-  return 0
+      return 0
+  return 1
 
 if __name__ == '__main__':
   raise SystemExit(main())
