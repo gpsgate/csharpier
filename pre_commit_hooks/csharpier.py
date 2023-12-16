@@ -122,12 +122,14 @@ def run_docker(argv: Sequence[str] | None = None) -> bool:
     if e.stdout:
       print(e.stdout)
   except FileNotFoundError:
-    print('docker is not installed. Ran out of options. Giving up!', file=sys.stderr)
+    print('docker is not installed or not in PATH!', file=sys.stderr)
   return False
 
-def run_csharpier(argv: Sequence[str] | None = None) -> bool:
+# Run csharpier directly. bin is how to run csharpier itself, argv are the
+# arguments to csharpier. Both will be combined to form the command to run
+def run_csharpier(bin: Sequence[str], argv: Sequence[str] | None = None) -> bool:
   try:
-    out = cmd_output('dotnet', 'csharpier', *argv)
+    out = cmd_output(*(bin + argv))
     if out:
       print(out)
     return True
@@ -137,13 +139,19 @@ def run_csharpier(argv: Sequence[str] | None = None) -> bool:
     if e.stdout:
       print(e.stdout)
   except FileNotFoundError:
-    print('dotnet tool "csharpier" is not installed. Will run through Docker. You can also install it using "dotnet tool install -g dotnet-csharpier".', file=sys.stderr)
+    csharpier = ' '.join(bin)
+    print(f'"{csharpier}" cannot be run. You can install it using "dotnet tool install -g dotnet-csharpier".', file=sys.stderr)
   return False
 
 def main() -> int:
   args = sys.argv[1:]
-  if not run_csharpier(args):
-    if not run_docker(args):
+  methods = os.environ.get('PRE_COMMIT_HOOK_CSHARPIER_SEARCH', 'bin tool docker')
+  for m in methods.split():
+    if m.lower() == 'bin' and run_csharpier(['dotnet-csharpier'], args):
+      return 1
+    if m.lower() == 'tool' and run_csharpier(['dotnet', 'csharpier'], args):
+      return 1
+    if m.lower() == 'docker' and run_docker(args):
       return 1
   return 0
 
