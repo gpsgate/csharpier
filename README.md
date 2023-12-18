@@ -51,7 +51,7 @@ tree in a directory that you will have to ignore from version control.
 
 ```yaml
   - repo: https://github.com/gpsgate/csharpier
-    rev: v0.2.0
+    rev: v0.3.0
     hooks:
       - id: csharpier
         args:
