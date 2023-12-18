@@ -103,7 +103,7 @@ def get_docker_user() -> tuple[str, ...]:  # pragma: win32 no cover
   except AttributeError:
     return ()
 
-def run_docker(argv: Sequence[str] | None = None) -> bool:
+def run_docker(version: str | None, argv: Sequence[str] | None = None) -> bool:
   try:
     image = os.environ.get('PRE_COMMIT_HOOK_CSHARPIER_DOCKER', 'ghcr.io/gpsgate/csharpier')
     out = cmd_output('docker', 'run',
@@ -127,7 +127,7 @@ def run_docker(argv: Sequence[str] | None = None) -> bool:
 
 # Run csharpier directly. bin is how to run csharpier itself, argv are the
 # arguments to csharpier. Both will be combined to form the command to run
-def run_csharpier(bin: Sequence[str], argv: Sequence[str] | None = None) -> bool:
+def run_csharpier(bin: Sequence[str], version: str | None, argv: Sequence[str] | None = None) -> bool:
   try:
     out = cmd_output(*(bin + argv))
     if out:
@@ -143,15 +143,25 @@ def run_csharpier(bin: Sequence[str], argv: Sequence[str] | None = None) -> bool
     print(f'"{csharpier}" cannot be run. You can install it using "dotnet tool install -g dotnet-csharpier".', file=sys.stderr)
   return False
 
-def main() -> int:
-  args = sys.argv[1:]
+def main(argv: Sequence[str] | None = None) -> int:
+  argv = argv if argv is not None else sys.argv[1:]
+  parser = argparse.ArgumentParser(prog='csharpier', description='Run csharpier on files')
+
+  # https://stackoverflow.com/a/8521644/812183
+  parser.add_argument(
+    '-v', '--version',
+    help='Force a specific version of csharpier to be used.'
+  )
+  parser.add_argument('args', nargs='*', help='Blind arguments to csharpier')
+  args = parser.parse_args(argv)
+
   methods = os.environ.get('PRE_COMMIT_HOOK_CSHARPIER_SEARCH', 'bin tool docker')
   for m in methods.split():
-    if m.lower() == 'bin' and run_csharpier(['dotnet-csharpier'], args):
+    if m.lower() == 'bin' and run_csharpier(['dotnet-csharpier'], args.version, args.args):
       return 0
-    if m.lower() == 'tool' and run_csharpier(['dotnet', 'csharpier'], args):
+    if m.lower() == 'tool' and run_csharpier(['dotnet', 'csharpier'], args.version, args.args):
       return 0
-    if m.lower() == 'docker' and run_docker(args):
+    if m.lower() == 'docker' and run_docker(args.args):
       return 0
   return 1
 
