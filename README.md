@@ -60,7 +60,7 @@ pinpoint a specific version of CSharpier.
 
 ```yaml
   - repo: https://github.com/gpsgate/csharpier
-    rev: v0.4.0
+    rev: v0.4.1
     hooks:
       - id: csharpier
         args:
@@ -76,7 +76,7 @@ of the options that are blindly passed to CSharpier.
 
 ```yaml
   - repo: https://github.com/gpsgate/csharpier
-    rev: v0.4.0
+    rev: v0.4.1
     hooks:
       - id: csharpier
         args:
