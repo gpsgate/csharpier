@@ -170,7 +170,7 @@ def run_docker(version: str | None, image: str, argv: Sequence[str] | None = Non
             image ] + (argv if argv is not None else [])
   result = run_command(argv=run)
   if result:
-    logging.info(f'Ran {image} on {" ".join(argv)}')
+    logging.info(f'Ran Docker container based on {image} with {" ".join(argv)}')
   else:
     logging.error(f'Cannot create Docker container from "{image}". Consider the --install option.')
   return result
@@ -267,7 +267,7 @@ def run_csharpier(bin: Sequence[str], argv: Sequence[str] | None = None) -> bool
   csharpier = ' '.join(bin)
   result = run_command(bin + argv)
   if result:
-    logging.info(f'Ran {csharpier} on {" ".join(argv)}')
+    logging.info(f'Ran {csharpier} directly with {" ".join(argv)}')
   else:
     logging.error(f'"{csharpier}" cannot be run. Install csharpier manually or consider the --install option.')
   return result
