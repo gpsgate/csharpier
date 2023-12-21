@@ -185,7 +185,7 @@ def make_executable(path):
 # Find csharpier. When no version is specified, look for it when dotnet installs
 # global tools. When a version is specified, look for it where the hook chooses
 # to install in that case.
-def find_csharpier(version: str | None) -> str | None:
+def find_csharpier(version: str | None = None) -> str | None:
   # dotnet tools install globally under USERPROFILE on windows and HOME
   # elsewhere
   home = os.environ.get('USERPROFILE', os.environ.get('HOME'))
@@ -216,7 +216,7 @@ def find_csharpier(version: str | None) -> str | None:
 # Install csharpier so that it will be accessible to all projects on the system.
 # When no version: global installation. Otherwise, use specific directory for
 # that version.
-def install_csharpier(version: str | None) -> str | None:
+def install_csharpier(version: str | None = None) -> str | None:
   # dotnet tools install globally under USERPROFILE on windows and HOME
   # elsewhere
   home = os.environ.get('USERPROFILE', os.environ.get('HOME'))
@@ -260,6 +260,33 @@ def install_csharpier(version: str | None) -> str | None:
 
   return None
 
+# Actively run the csharpier command passed as an argument with the --version
+# option and return the version string. Strips away the revision number from the
+# version.
+def csharpier_version(bin: Sequence[str]) -> str | None:
+  try:
+    command = bin + ['--version']
+    version = cmd_output(*command).strip()
+    # If we have a version, strip away the revision number
+    if version:
+      return re.sub('\+[a-fA-F0-9]+$','',version)
+  except CalledProcessError:
+    return None
+
+# Construct a csharpier command based on the method passed as an argument, i.e.
+# look for the dotnet-csharpier binary or the dotnet tool called csharpier.
+def construct_csharpier_command(method: str) -> Sequence[str] | None:
+  if method == 'bin':
+    bin = find_executable('dotnet-csharpier')
+    if bin:
+      return [bin]
+  # Try running it through dotnet, i.e. let dotnet find it as a tool.
+  if method == 'tool':
+    dotnet = find_executable('dotnet')
+    if dotnet:
+      return [dotnet, 'csharpier']
+
+  return None
 
 # Run csharpier directly. bin is how to run csharpier itself, argv are the
 # arguments to csharpier. Both will be combined to form the command to run
@@ -342,13 +369,26 @@ def main(argv: Sequence[str] | None = None) -> int:
       # Look for csharpier at the requested version in the directory of our
       # liking, perhaps install it and run it from there.
       if m == 'bin' or m == 'tool':
-        csharpier = find_csharpier(version)
-        if not csharpier:
-          if install == 'always' or install == 'version':
-            csharpier = install_csharpier(version)
+        # Find csharpier through the PATH and respecting the bin/tool duality,
+        # if found check its version against the requested version
+        csharpier = construct_csharpier_command(m)
         if csharpier:
-          if run_csharpier([csharpier], args.args):
-            return 0
+          installed_version = csharpier_version(csharpier)
+          if installed_version != version:
+            logging.debug(f'Found csharpier {installed_version} at {csharpier} but looking for {version}')
+            csharpier = None
+        # If not found at that version (or at all), look for where the hook
+        # installs it. Install it there if not found and relevant.
+        if not csharpier:
+          bin = find_csharpier(version)
+          if not bin:
+            if install == 'always' or install == 'version':
+              bin = install_csharpier(version)
+          if bin:
+            csharpier = [ bin ]
+        # We have a csharpier binary, at the right version: Run it!
+        if csharpier and run_csharpier(csharpier, args.args):
+          return 0
       # Run csharpier as a docker container, at the specified version.
       if m == 'docker' and run_docker(image=image, version=version, argv=args.args):
         return 0
@@ -357,7 +397,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     for m in methods:
       if install == 'always':
         # When we should always install, install csharpier (globally) if it
-        # cannot be found and run it.
+        # cannot be found where dotnet installs global tools and run it.
         if m == 'bin' or m == 'tool':
           csharpier = find_csharpier()
           if not csharpier:
@@ -367,14 +407,9 @@ def main(argv: Sequence[str] | None = None) -> int:
               return 0
       else:
         # Try running it from the PATH as dotnet-csharpier
-        if m == 'bin':
-          csharpier = find_executable('dotnet-csharpier')
-          if csharpier and run_csharpier([csharpier], args.args):
-            return 0
-        # Try running it through dotnet, i.e. let dotnet find it as a tool.
-        if m == 'tool':
-          dotnet = find_executable('dotnet')
-          if dotnet and run_csharpier([dotnet, 'csharpier'], args.args):
+        if m == 'bin' or m == 'tool':
+          csharpier = construct_csharpier_command(m)
+          if csharpier and run_csharpier(csharpier, args.args):
             return 0
       # Run csharpier as a docker container, this will use the latest (by
       # default, but controlled through the --docker option).
