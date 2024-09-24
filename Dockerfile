@@ -4,7 +4,7 @@ ARG CSHARPIER_VERSION=0.26.1
 
 RUN dotnet tool install --tool-path /tmp/tools csharpier --version ${CSHARPIER_VERSION}
 
-FROM mcr.microsoft.com/dotnet/runtime:${DOTNET_VERSION}
+FROM mcr.microsoft.com/dotnet/aspnet:${DOTNET_VERSION}
 
 ARG LABEL_AUTHOR="Emmanuel Frécon <efrecon+github@gmail.com>"
 ARG LABEL_URL=https://github.com/gpsgate/csharpier
