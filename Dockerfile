@@ -1,5 +1,5 @@
 ARG DOTNET_VERSION=7.0
-FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} as build
+FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION} AS build
 ARG CSHARPIER_VERSION=0.26.1
 
 RUN dotnet tool install --tool-path /tmp/tools csharpier --version ${CSHARPIER_VERSION}
