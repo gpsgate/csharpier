@@ -108,7 +108,7 @@ _git_commit_files() {
 # Given a list of files passed as arguments, print out the ones that are ignored
 # by the .dockerignore file.
 _dockerignored_files() {
-  git ls-files --ignored --exclude-from=.dockerignore -- "$@"
+    git ls-files --ignored --cached --exclude-from=.dockerignore -- "$@"
 }
 
 # Given a git sha reference, print out the files that are relevant to the
