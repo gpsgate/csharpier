@@ -291,6 +291,12 @@ def construct_csharpier_command(method: str) -> Sequence[str] | None:
 # Run csharpier directly. bin is how to run csharpier itself, argv are the
 # arguments to csharpier. Both will be combined to form the command to run
 def run_csharpier(bin: Sequence[str], argv: Sequence[str] | None = None) -> bool:
+  # Prevent telemetry and dotnet preamble
+  if 'DOTNET_CLI_TELEMETRY_OPTOUT' not in os.environ:
+    os.environ['DOTNET_CLI_TELEMETRY_OPTOUT'] = '1'
+  if 'DOTNET_NOLOGO' not in os.environ:
+    os.environ['DOTNET_NOLOGO'] = 'true'
+
   csharpier = ' '.join(bin)
   result = run_command(bin + argv)
   if result:

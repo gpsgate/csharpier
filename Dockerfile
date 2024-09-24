@@ -25,4 +25,9 @@ COPY --from=build /tmp/tools /home/dotnet/.dotnet/tools
 RUN chown -R dotnet:dotnet /home/dotnet/.dotnet
 USER dotnet
 
+# Turn off telemetry and dotnet preamble to prevent polluting stdout from
+# CI/pre-commit.
+ENV DOTNET_CLI_TELEMETRY_OPTOUT=1
+ENV DOTNET_NOLOGO=true
+
 ENTRYPOINT ["/home/dotnet/.dotnet/tools/dotnet-csharpier"]
