@@ -120,6 +120,16 @@ def run_command(argv: Sequence[str]) -> bool:
     logging.warning(f'{argv[0]} not found!')
   return False
 
+def run_dotnet_command(argv: Sequence[str]) -> bool:
+  # Prevent telemetry and dotnet preamble
+  if 'DOTNET_CLI_TELEMETRY_OPTOUT' not in os.environ:
+    os.environ['DOTNET_CLI_TELEMETRY_OPTOUT'] = '1'
+  if 'DOTNET_NOLOGO' not in os.environ:
+    os.environ['DOTNET_NOLOGO'] = '1'
+
+  # Then run the command passed in argv
+  return run_command(argv)
+
 # Find an executable in the PATH. This is aware of the (Windows) PATHEXT
 # environment variable, and will automatically search an equivalent .exe (on all
 # OSes, so this can be run from WSL).
@@ -250,7 +260,7 @@ def install_csharpier(version: str | None = None) -> str | None:
     # No version specified, install the latest version of csharpier, globally
     install = [ dotnet, 'tool', 'install', '-g', 'dotnet-csharpier' ]
 
-  if run_command(install):
+  if run_dotnet_command(install):
     csharpier = find_csharpier(version)
     make_executable(csharpier)
     logging.info(f'Installed csharpier as {csharpier}')
@@ -291,14 +301,8 @@ def construct_csharpier_command(method: str) -> Sequence[str] | None:
 # Run csharpier directly. bin is how to run csharpier itself, argv are the
 # arguments to csharpier. Both will be combined to form the command to run
 def run_csharpier(bin: Sequence[str], argv: Sequence[str] | None = None) -> bool:
-  # Prevent telemetry and dotnet preamble
-  if 'DOTNET_CLI_TELEMETRY_OPTOUT' not in os.environ:
-    os.environ['DOTNET_CLI_TELEMETRY_OPTOUT'] = '1'
-  if 'DOTNET_NOLOGO' not in os.environ:
-    os.environ['DOTNET_NOLOGO'] = 'true'
-
   csharpier = ' '.join(bin)
-  result = run_command(bin + argv)
+  result = run_dotnet_command(bin + argv)
   if result:
     logging.info(f'Ran {csharpier} directly with {" ".join(argv)}')
   else:
