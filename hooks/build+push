@@ -99,6 +99,30 @@ _docker_timestamp() {
 # Return the UNIX timestamp of the commit reference(s) passed as argument.
 _git_timestamp() { git show -s --format="%ct" "$@";}
 
+# Print out list of files changed in the commit passed as argument, one per
+# line.
+_git_commit_files() {
+  git show --name-only --oneline "$@" | tail -n +2
+}
+
+# Given a list of files passed as arguments, print out the ones that are ignored
+# by the .dockerignore file.
+_dockerignored_files() {
+  git ls-files --ignored --exclude-from=.dockerignore -- "$@"
+}
+
+# Given a git sha reference, print out the files that are relevant to the
+# building of the Docker image, i.e. that are NOT ignored by the .dockerignore
+# file.
+_dockerimage_sha_ref() {
+  while IFS= read -r file; do
+    if [ -z "$(_dockerignored_files "$file")" ]; then
+      printf %s\\n "$file"
+    fi
+  done <<EOF
+$(_git_commit_files "$@")
+EOF
+}
 
 echo "============== Gettings latest releases for $GH_PROJECT at github"
 _latest=
@@ -109,38 +133,43 @@ for tag in $(_releases "$GH_PROJECT"); do
   fi
 
   if [ "$(img_version "${tag#v}")" -ge "$(img_version "$MINVER")" ]; then
-    img_date=$(_docker_timestamp "${DOCKER_REPO}:$tag")
-    git_date=$(_git_timestamp "$SOURCE_COMMIT")
-    if [ "$git_date" -ge "$img_date" ]; then
-      echo "============== Image ${DOCKER_REPO}:$tag older than $SOURCE_COMMIT"
-      # Prepare arguments for docker buildx.
-      set -- \
-        --tag "${DOCKER_REPO}:$tag" \
-        --platform "$PLATFORMS" \
-        --build-arg CSHARPIER_VERSION="$tag" \
-        --label "${OCINS}.revision=$SOURCE_COMMIT" \
-        "$BUILDX_OPERATION"
-      # Add latest tag when relevant
-      if [ "$tag" = "$_latest" ]; then
+    docker_files=$(_dockerimage_sha_ref "$SOURCE_COMMIT")
+    if [ -n "$docker_files" ]; then
+      img_date=$(_docker_timestamp "${DOCKER_REPO}:$tag")
+      git_date=$(_git_timestamp "$SOURCE_COMMIT")
+      if [ "$git_date" -ge "$img_date" ]; then
+        echo "============== Image ${DOCKER_REPO}:$tag older than $SOURCE_COMMIT"
+        # Prepare arguments for docker buildx.
         set -- \
-          --tag "${DOCKER_REPO}:latest" \
-          "$@"
+          --tag "${DOCKER_REPO}:$tag" \
+          --platform "$PLATFORMS" \
+          --build-arg CSHARPIER_VERSION="$tag" \
+          --label "${OCINS}.revision=$SOURCE_COMMIT" \
+          "$BUILDX_OPERATION"
+        # Add latest tag when relevant
+        if [ "$tag" = "$_latest" ]; then
+          set -- \
+            --tag "${DOCKER_REPO}:latest" \
+            "$@"
+        fi
+        if [ -n "$LABEL_AUTHOR" ]; then set -- --label "${OCINS}.authors=$LABEL_AUTHOR" "$@"; fi
+        if [ -n "$LABEL_DESCRIPTION" ]; then set -- --label "${OCINS}.description=$LABEL_DESCRIPTION" "$@"; fi
+        if [ -n "$LABEL_URL" ]; then set -- --label "${OCINS}.url=$LABEL_URL" "$@"; fi
+        if [ -n "$LABEL_TITLE" ]; then set -- --label "${OCINS}.title=$LABEL_TITLE" "$@"; fi
+        # Fix dotnet version, migrate to LTS 8.0 starting from 0.26.2. See:
+        # https://github.com/belav/csharpier/releases/tag/0.26.2
+        if [ "$(img_version "${tag#v}")" -ge "$(img_version "0.26.2")" ]; then
+          set -- \
+            --build-arg DOTNET_VERSION="8.0" \
+            "$@"
+        fi
+        # build (and push) according to arguments and at the right tags.
+        docker buildx build "$@" .
+      else
+        echo "!!!!!!!!!!!!!! Image ${DOCKER_REPO}:$tag newer than ${SOURCE_COMMIT}, skipping"
       fi
-      if [ -n "$LABEL_AUTHOR" ]; then set -- --label "${OCINS}.authors=$LABEL_AUTHOR" "$@"; fi
-      if [ -n "$LABEL_DESCRIPTION" ]; then set -- --label "${OCINS}.description=$LABEL_DESCRIPTION" "$@"; fi
-      if [ -n "$LABEL_URL" ]; then set -- --label "${OCINS}.url=$LABEL_URL" "$@"; fi
-      if [ -n "$LABEL_TITLE" ]; then set -- --label "${OCINS}.title=$LABEL_TITLE" "$@"; fi
-      # Fix dotnet version, migrate to LTS 8.0 starting from 0.26.2. See:
-      # https://github.com/belav/csharpier/releases/tag/0.26.2
-      if [ "$(img_version "${tag#v}")" -ge "$(img_version "0.26.2")" ]; then
-        set -- \
-          --build-arg DOTNET_VERSION="8.0" \
-          "$@"
-      fi
-      # build (and push) according to arguments and at the right tags.
-      docker buildx build "$@" .
     else
-      echo "!!!!!!!!!!!!!! Image ${DOCKER_REPO}:$tag newer than ${SOURCE_COMMIT}, skipping"
+      echo "!!!!!!!!!!!!!! No files relevant to the Docker image touched by commit ${SOURCE_COMMIT}, skipping"
     fi
   fi
 done
