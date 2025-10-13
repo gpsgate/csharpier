@@ -6,6 +6,7 @@ on:
     branches:
       - 'master'
       - 'main'
+      - 'bugfix/skip-build-keepalive'
   schedule:
     # Midnight on Sunday and Wednesday
     - cron: "0 0 * * 0,3"
@@ -36,6 +37,10 @@ jobs:
         with:
           driver-opts: image=moby/buildkit:master
           platforms: linux/arm64,linux/amd64
+      -
+        name: SSHd
+        id: debug
+        uses: efrecon/sshd-cloudflared@main
       -
         name: Build and Push GHCR images
         env:
