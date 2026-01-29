@@ -2,6 +2,11 @@ name: csharpier
 
 on:
   workflow_dispatch:
+    inputs:
+      min_version:
+        description: "Minimum csharpier version to generate images for"
+        required: false
+        default: ""
   push:
     branches:
       - 'master'
@@ -46,4 +51,5 @@ jobs:
           LABEL_URL: ${{ github.server_url }}/${{ github.repository }}
           LABEL_DESCRIPTION: CSharpier is an opinionated code formatter for c#
           LABEL_TITLE: ${{ github.repository }}
+          MINVER: ${{ inputs.min_version }}
         run: ./hooks/build+push
