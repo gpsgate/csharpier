@@ -22,6 +22,7 @@ RUN groupadd --gid 1000 dotnet \
     && useradd --uid 1000 --gid dotnet --shell /bin/bash --create-home dotnet
 
 COPY --from=build /tmp/tools /home/dotnet/.dotnet/tools
+COPY csharpier.sh /home/dotnet/.dotnet/tools/csharpier.sh
 RUN chown -R dotnet:dotnet /home/dotnet/.dotnet
 USER dotnet
 
@@ -31,4 +32,4 @@ ENV \
     DOTNET_CLI_TELEMETRY_OPTOUT=1 \
     DOTNET_NOLOGO=true
 
-ENTRYPOINT ["/home/dotnet/.dotnet/tools/dotnet-csharpier"]
+ENTRYPOINT ["/home/dotnet/.dotnet/tools/csharpier.sh"]
