@@ -204,38 +204,51 @@ def run_dotnet_command(argv: Sequence[str]) -> bool:
   # Then run the command passed in argv
   return run_command(argv)
 
+def split_path(path: str) -> Sequence[str]:
+  """Split a PATH-like environment variable into its components.
 
-def enumerate_executables(exe: str, envvar: str | None = 'PATH', insert: str | None = None, flag: int = os.X_OK) -> Sequence[str]:
-  """Enumerate all instances of an executable in the PATH.
+  Args:
+      path (str): The PATH-like environment variable to split.
+  Returns:
+      Sequence[str]: The components of the PATH-like variable.
+  """
+  if (path == ''):
+    return []
+  if path.find(os.pathsep) == -1:
+    return [path]
+  return path.split(os.pathsep)
+
+
+def enumerate_executables(exe: str, path: str | None = None, insert: str | None = None, flag: int = os.X_OK) -> Sequence[str]:
+  """Enumerate all instances of an executable using a PATH-like variable.
   
   This is aware of the (Windows) PATHEXT environment variable, and will
   automatically search an equivalent .exe (on all OSes, so this can be run from
   WSL). When an insert path is specified, that path will be searched first. When
-  envvar is None, no PATH-like searching will be done, only the insert path (if
+  path is None, no PATH-like searching will be done, only the insert path (if
   specified) will be searched. The flag parameter specifies the access mode to
   check for.
 
   Args:
-      exe (str): The name of the executable to search for. envvar (str | None,
-      optional): The environment variable to use for PATH-like searching.
-      Defaults to 'PATH'. insert (str | None, optional): A path to insert at the
-      start of the search. Defaults to None. flag (int, optional): The access
-      mode to check for. Defaults to os.X_OK.
+      exe (str): The name of the executable to search for.
+      path (str | None, optional): The PATH-like specification. Defaults to None.
+      insert (str | None, optional): A path to insert at the start of the search. Defaults to None.
+      flag (int, optional): The access mode to check for. Defaults to os.X_OK.
   Returns:
       Sequence[str]: A list of paths to the found executables.
   """
   exe = os.path.normpath(exe)
   executables = []
   if 'PATHEXT' in os.environ:
-    exts = os.environ['PATHEXT'].split(os.pathsep)
+    exts = split_path(os.environ['PATHEXT'])
     possible_exe_names = tuple(f'{exe}{ext}' for ext in exts) + (exe,)
   else:
     # Also try with .exe anyway, for WSL setups
     possible_exe_names = (exe,exe+'.exe')
 
   # When an insert path is specified, look there first
-  if envvar:
-    path_dirs = os.environ.get(envvar, '').split(os.pathsep)
+  if path is not None:
+    path_dirs = split_path(path)
   else:
     path_dirs = []
   if insert:
@@ -266,7 +279,7 @@ def find_executable(exe: str) -> str | None:
   Returns:
       str | None: The path to the found executable, or None if not found.
   """
-  executables = enumerate_executables(exe=exe)
+  executables = enumerate_executables(exe=exe, path=os.environ.get('PATH'))
   if executables:
     return executables[0]
   return None
@@ -432,7 +445,7 @@ def install_csharpier(version: str | None = None) -> str | None:
   if run_dotnet_command(install):
     binaries = ['dotnet-csharpier', 'csharpier']
     for binary in binaries:
-      executables = enumerate_executables(exe=binary, envvar=None, flag=os.R_OK, insert=target)
+      executables = enumerate_executables(exe=binary, path=None, flag=os.R_OK, insert=target)
       if executables:
         csharpier = executables[0]
         make_executable(csharpier)
@@ -521,7 +534,7 @@ def run_csharpier(bin: Sequence[str], argv: Sequence[str] | None = None, version
   return result
 
 
-def run_csharpier_as_binary(version: str | None, path: str | None = 'PATH', argv: Sequence[str] | None = None) -> bool:
+def run_csharpier_as_binary(version: str | None, path: str | None = None, argv: Sequence[str] | None = None) -> bool:
   """Run csharpier as a direct binary.
 
   Args:
@@ -537,7 +550,7 @@ def run_csharpier_as_binary(version: str | None, path: str | None = 'PATH', argv
   # simply csharpier in version 1.0.0, so we will try both.
   binaries = ['dotnet-csharpier', 'csharpier']
   for binary in binaries:
-    for exe in enumerate_executables(exe=binary, envvar=path, insert=default_dir):
+    for exe in enumerate_executables(exe=binary, path=path, insert=default_dir):
       csharpier = [ exe ]
       if version:
         installed_version = csharpier_version(csharpier)
@@ -566,16 +579,29 @@ def run_csharpier_as_local_tool(version: str | None, argv: Sequence[str] | None 
   Returns:
       bool: True if csharpier ran successfully, False otherwise.
   """
+  # Find dotnet executable, cannot run without it
   dotnet = find_executable('dotnet')
   if not dotnet:
     return False
+
+  # Trying to find csharpier as a local tool, so we construct a command that
+  # will run it via dotnet. This is the way and the equivalent of dotnet tool
+  # run csharpier.
   csharpier = [ dotnet, 'csharpier' ]
+
+  # Check its version, if we can't, then there isn't a local tool installed
+  installed_version = csharpier_version(csharpier)
+  if not installed_version:
+    return False
+
+  # Check version match when relevant, otherwise run it at the found version
+  # since version was irrelevant.
   if version:
-    installed_version = csharpier_version(csharpier)
     if installed_version == version:
       return run_csharpier(csharpier, argv, version)
   else:
-    return run_csharpier(csharpier, argv, version)
+    return run_csharpier(csharpier, argv, installed_version)
+
   return False
 
 
@@ -587,11 +613,11 @@ def run_csharpier_as_tool(version: str | None, argv: Sequence[str] | None = None
   Returns:
       bool: True if csharpier ran successfully, False otherwise.
   """
-  # Run as a local tool first, if not found, run as a binary since this will
-  # actively look at where dotnet installs the global tools.
+  # Run as a local tool first, if not found, try running as a binary from where
+  # dotnet installs the global tools.
   if run_csharpier_as_local_tool(version, argv=argv):
     return True
-  return run_csharpier_as_binary(version, path=None, argv=argv)
+  return run_csharpier_as_binary(version, path=install_tooldir(), argv=argv)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -610,7 +636,7 @@ def main(argv: Sequence[str] | None = None) -> int:
   parser.add_argument(
     '-s', '--search',
     dest='methods',
-    default='bin tool docker',
+    default='tool bin docker',
     help='Methods to find csharpier, and in which order. Space separated tokens: bin, tool or docker'
   )
   # When to install csharpier
@@ -661,11 +687,13 @@ def main(argv: Sequence[str] | None = None) -> int:
 
   # First try the local methods in order
   for m in methods:
-    if m == 'bin':
-      if run_csharpier_as_binary(version, argv=args.args):
-        return 0
     if m == 'tool':
+      logging.debug('Attempting to run csharpier as a dotnet tool...')
       if run_csharpier_as_tool(version, argv=args.args):
+        return 0
+    if m == 'bin':
+      logging.debug('Attempting to run csharpier as a direct binary...')
+      if run_csharpier_as_binary(version, path=os.environ.get('PATH'), argv=args.args):
         return 0
 
   # Still not found, try to install if allowed
