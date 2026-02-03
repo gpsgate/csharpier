@@ -212,7 +212,7 @@ def split_path(path: str) -> Sequence[str]:
   Returns:
       Sequence[str]: The components of the PATH-like variable.
   """
-  if (path == ''):
+  if path == '':
     return []
   if path.find(os.pathsep) == -1:
     return [path]
@@ -330,10 +330,14 @@ def run_docker(version: str | None, image: str, argv: Sequence[str] | None = Non
   docker = find_executable('docker')
   if not docker:
     logging.warning('docker cannot be found in PATH!')
-    return None
+    return False
   
   if request_version:
     version = docker_csharpier_version(docker, image)
+
+  if not version:
+    logging.error(f'Could not determine csharpier version in Docker image {image}!')
+    return False
 
   run = [ 'docker', 'run',
             '--rm',
@@ -348,7 +352,7 @@ def run_docker(version: str | None, image: str, argv: Sequence[str] | None = Non
     run += argv
   result = run_command(argv=run)
   if result:
-    logging.info(f'Ran Docker container based on {image} with {" ".join(argv)}')
+    logging.info(f'Ran Docker container based on {image} with {" ".join(argv if argv else [])}')
   else:
     logging.error(f'Cannot create Docker container from "{image}". Consider the --install option.')
   return result
@@ -523,10 +527,14 @@ def run_csharpier(bin: Sequence[str], argv: Sequence[str] | None = None, version
   """
   if not version:
     version = csharpier_version(bin)
+    if not version:
+      logging.error('Could not determine csharpier version!')
+      return False
+
   if is_version_greater_or_equal(version, '1.0.0'):
     bin = bin + ['format']
   csharpier = ' '.join(bin)
-  result = run_dotnet_command(bin + argv)
+  result = run_dotnet_command(bin + (argv or []))
   if result:
     logging.info(f'Ran {csharpier} directly with {" ".join(argv)}')
   else:
@@ -539,7 +547,7 @@ def run_csharpier_as_binary(version: str | None, path: str | None = None, argv: 
 
   Args:
       version (str | None): The version of csharpier to use. If None, any version is accepted.
-      path (str | None, optional): The environment variable to use for PATH-like searching. Defaults to 'PATH'.
+      path (str | None, optional): a PATH-like searching directive. Defaults to None.
       argv (Sequence[str] | None, optional): The arguments to pass to csharpier. Defaults to None.
   Returns:
       bool: True if csharpier ran successfully, False otherwise.
@@ -554,13 +562,6 @@ def run_csharpier_as_binary(version: str | None, path: str | None = None, argv: 
       csharpier = [ exe ]
       if version:
         installed_version = csharpier_version(csharpier)
-        if installed_version == version:
-          return run_csharpier(csharpier, argv, version)
-      else:
-        return run_csharpier(csharpier, argv, version)
-
-      installed_version = csharpier_version(csharpier)
-      if version:
         if installed_version == version:
           return run_csharpier(csharpier, argv, version)
       else:
