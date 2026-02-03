@@ -204,13 +204,13 @@ def run_dotnet_command(argv: Sequence[str]) -> bool:
   # Then run the command passed in argv
   return run_command(argv)
 
-def split_path(path: str) -> Sequence[str]:
+def split_path(path: str) -> list[str]:
   """Split a PATH-like environment variable into its components.
 
   Args:
       path (str): The PATH-like environment variable to split.
   Returns:
-      Sequence[str]: The components of the PATH-like variable.
+      list[str]: The components of the PATH-like variable.
   """
   if path == '':
     return []
@@ -235,7 +235,7 @@ def enumerate_executables(exe: str, path: str | None = None, insert: str | None 
       insert (str | None, optional): A path to insert at the start of the search. Defaults to None.
       flag (int, optional): The access mode to check for. Defaults to os.X_OK.
   Returns:
-      Sequence[str]: A list of paths to the found executables.
+      list[str]: A list of paths to the found executables.
   """
   exe = os.path.normpath(exe)
   executables = []
@@ -244,7 +244,7 @@ def enumerate_executables(exe: str, path: str | None = None, insert: str | None 
     possible_exe_names = tuple(f'{exe}{ext}' for ext in exts) + (exe,)
   else:
     # Also try with .exe anyway, for WSL setups
-    possible_exe_names = (exe,exe+'.exe')
+    possible_exe_names = (exe, exe+'.exe')
 
   # When an insert path is specified, look there first
   if path is not None:
@@ -261,8 +261,9 @@ def enumerate_executables(exe: str, path: str | None = None, insert: str | None 
       joined = os.path.join(dir, possible_exe_name)
       if os.path.isfile(joined) and os.access(joined, flag):
         resolved_path = os.path.realpath(joined)
-        logging.debug(f'Found {exe} as {resolved_path}')
-        executables.append(resolved_path)
+        if resolved_path not in executables:
+          logging.debug(f'Found {exe} as {resolved_path}')
+          executables.append(resolved_path)
   
   return executables
 
