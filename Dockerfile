@@ -23,7 +23,8 @@ RUN groupadd --gid 1000 dotnet \
 
 COPY --from=build /tmp/tools /home/dotnet/.dotnet/tools
 COPY csharpier.sh /home/dotnet/.dotnet/tools/csharpier.sh
-RUN chown -R dotnet:dotnet /home/dotnet/.dotnet
+RUN chown -R dotnet:dotnet /home/dotnet/.dotnet \
+    && chmod +x /home/dotnet/.dotnet/tools/csharpier.sh
 USER dotnet
 
 # Turn off telemetry and dotnet preamble to prevent polluting stdout from

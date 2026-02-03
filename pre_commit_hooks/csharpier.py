@@ -219,7 +219,7 @@ def split_path(path: str) -> Sequence[str]:
   return path.split(os.pathsep)
 
 
-def enumerate_executables(exe: str, path: str | None = None, insert: str | None = None, flag: int = os.X_OK) -> Sequence[str]:
+def enumerate_executables(exe: str, path: str | None = None, insert: str | None = None, flag: int = os.X_OK) -> list[str]:
   """Enumerate all instances of an executable using a PATH-like variable.
   
   This is aware of the (Windows) PATHEXT environment variable, and will
@@ -256,9 +256,9 @@ def enumerate_executables(exe: str, path: str | None = None, insert: str | None 
   else:
     candidates = path_dirs
 
-  for path in candidates:
+  for dir in candidates:
     for possible_exe_name in possible_exe_names:
-      joined = os.path.join(path, possible_exe_name)
+      joined = os.path.join(dir, possible_exe_name)
       if os.path.isfile(joined) and os.access(joined, flag):
         resolved_path = os.path.realpath(joined)
         logging.debug(f'Found {exe} as {resolved_path}')
@@ -318,7 +318,7 @@ def run_docker(version: str | None, image: str, argv: Sequence[str] | None = Non
   # Adapt image specification to contain version
   request_version = False
   if version:
-    if re.match(':[a-z0-9]+(?:[._-][a-z0-9]+)*$', image):
+    if re.search(':[a-z0-9]+(?:[._-][a-z0-9]+)*$', image):
       logging.warning(f'Provided image {image} already contains a tag. Will not override with {version}')
       request_version = True
     else:
@@ -326,7 +326,7 @@ def run_docker(version: str | None, image: str, argv: Sequence[str] | None = Non
   else:
     request_version = True
 
-  # Find dotnet executable, cannot run without it
+  # Find docker executable, cannot run without it
   docker = find_executable('docker')
   if not docker:
     logging.warning('docker cannot be found in PATH!')
@@ -358,7 +358,7 @@ def run_docker(version: str | None, image: str, argv: Sequence[str] | None = Non
   return result
 
 
-def make_executable(path):
+def make_executable(path: str):
   """Make a file executable by setting its x bits based on its r bits.
   Args:
       path (str): The path to the file to make executable.
@@ -536,7 +536,7 @@ def run_csharpier(bin: Sequence[str], argv: Sequence[str] | None = None, version
   csharpier = ' '.join(bin)
   result = run_dotnet_command(bin + (argv or []))
   if result:
-    logging.info(f'Ran {csharpier} directly with {" ".join(argv)}')
+    logging.info(f'Ran {csharpier} directly with {" ".join(argv or [])}')
   else:
     logging.error(f'"{csharpier}" cannot be run. Install csharpier manually or consider the --install option.')
   return result
@@ -560,12 +560,14 @@ def run_csharpier_as_binary(version: str | None, path: str | None = None, argv: 
   for binary in binaries:
     for exe in enumerate_executables(exe=binary, path=path, insert=default_dir):
       csharpier = [ exe ]
+      installed_version = csharpier_version(csharpier)
+      if not installed_version:
+        continue
       if version:
-        installed_version = csharpier_version(csharpier)
         if installed_version == version:
           return run_csharpier(csharpier, argv, version)
       else:
-        return run_csharpier(csharpier, argv, version)
+        return run_csharpier(csharpier, argv, installed_version)
   return False
 
 
@@ -607,7 +609,7 @@ def run_csharpier_as_local_tool(version: str | None, argv: Sequence[str] | None 
 
 
 def run_csharpier_as_tool(version: str | None, argv: Sequence[str] | None = None) -> bool:
-  """Run csharpier as a dotnet tool.
+  """Run csharpier as a dotnet tool (local or global).
   Args:
       version (str | None): The version of csharpier to use. If None, any version is accepted.
       argv (Sequence[str] | None, optional): The arguments to pass to csharpier. Defaults to None.
@@ -638,7 +640,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     '-s', '--search',
     dest='methods',
     default='tool bin docker',
-    help='Methods to find csharpier, and in which order. Space separated tokens: bin, tool or docker'
+    help='Methods to find csharpier, and in which order. Space separated tokens: tool, bin or docker'
   )
   # When to install csharpier
   # never: Never install csharpier
@@ -670,7 +672,7 @@ def main(argv: Sequence[str] | None = None) -> int:
   # Existing environment variables, if set, will have precedence.
   version = os.environ.get('PRE_COMMIT_HOOK_CSHARPIER_VERSION', args.version)
   if version:
-    version = version.lstrip('v')
+    version = get_semver(version)
   methods = os.environ.get('PRE_COMMIT_HOOK_CSHARPIER_SEARCH', args.methods).lower().split()
   install = os.environ.get('PRE_COMMIT_HOOK_CSHARPIER_INSTALL', args.install).lower()
   image = os.environ.get('PRE_COMMIT_HOOK_CSHARPIER_DOCKER', args.image)
