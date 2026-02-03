@@ -22,7 +22,9 @@ RUN groupadd --gid 1000 dotnet \
     && useradd --uid 1000 --gid dotnet --shell /bin/bash --create-home dotnet
 
 COPY --from=build /tmp/tools /home/dotnet/.dotnet/tools
-RUN chown -R dotnet:dotnet /home/dotnet/.dotnet
+COPY csharpier.sh /home/dotnet/.dotnet/tools/csharpier.sh
+RUN chown -R dotnet:dotnet /home/dotnet/.dotnet \
+    && chmod +x /home/dotnet/.dotnet/tools/csharpier.sh
 USER dotnet
 
 # Turn off telemetry and dotnet preamble to prevent polluting stdout from
@@ -31,4 +33,4 @@ ENV \
     DOTNET_CLI_TELEMETRY_OPTOUT=1 \
     DOTNET_NOLOGO=true
 
-ENTRYPOINT ["/home/dotnet/.dotnet/tools/dotnet-csharpier"]
+ENTRYPOINT ["/home/dotnet/.dotnet/tools/csharpier.sh"]
