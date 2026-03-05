@@ -427,7 +427,7 @@ def install_csharpier(version: str | None = None) -> str | None:
     return None
 
   if not os.path.exists(target):
-    os.makedirs(target)
+    os.makedirs(target, exist_ok=True)
 
   # Find dotnet executable, cannot run without it
   dotnet = find_executable('dotnet')
