@@ -26,7 +26,7 @@ _releases() {
   # version to be at the top. See: https://stackoverflow.com/a/40391207
   github_releases -r 'v?[0-9]+\.[0-9]+\.[0-9]+' "$1" |
     sed '/-/!{s/$/_/}' |
-    sort -Vr |
+    sort -V |
     sed 's/_$//'
 }
 
