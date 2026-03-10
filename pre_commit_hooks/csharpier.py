@@ -90,6 +90,43 @@ def _get_container_id() -> str:
   raise RuntimeError('Failed to find the container ID in /proc/1/cgroup.')
 
 
+def _is_in_wsl() -> bool:
+  """Detect if running inside WSL(2)
+
+  Returns:
+    bool: True if running inside WSL2, False otherwise
+  """
+
+  # 1. Direct access to /proc/version. Covers 99% of the cases?
+  try:
+    if os.path.exists("/proc/version"):
+      with open("/proc/version", "r") as f:
+        version_content = f.read().lower()
+        if "microsoft" in version_content or "wsl2" in version_content:
+          return True
+  except Exception:
+    pass
+
+  # 2. Check for the WSL-specific interop file
+  # This is the most reliable "non-version" marker
+  if os.path.exists("/proc/sys/fs/binfmt_misc/WSLInterop"):
+    return True
+
+  # 3. Check for the /run/WSL directory (common in modern WSL2)
+  if os.path.exists("/run/WSL"):
+    return True
+
+  # 4. Final check: Can we see the Windows Command Prompt?
+  try:
+    # Check if cmd.exe is in the PATH (standard in WSL)
+    devnull = open(os.devnull, 'w')
+    if subprocess.call(["which", "cmd.exe"], stdout=devnull, stderr=devnull) == 0:
+      return True
+  except Exception:
+    pass
+
+  return False  
+
 def _is_in_docker() -> bool:
   """Check if the current environment is inside a Docker container.
 
@@ -223,11 +260,11 @@ def enumerate_executables(exe: str, path: str | None = None, insert: str | None 
   """Enumerate all instances of an executable using a PATH-like variable.
   
   This is aware of the (Windows) PATHEXT environment variable, and will
-  automatically search an equivalent .exe (on all OSes, so this can be run from
-  WSL). When an insert path is specified, that path will be searched first. When
-  path is None, no PATH-like searching will be done, only the insert path (if
-  specified) will be searched. The flag parameter specifies the access mode to
-  check for.
+  automatically search an equivalent .exe (when we detect that the hook is run
+  in WSL2). When an insert path is specified, that path will be searched first.
+  When path is None, no PATH-like searching will be done, only the insert path
+  (if specified) will be searched. The flag parameter specifies the access mode
+  to check for.
 
   Args:
       exe (str): The name of the executable to search for.
@@ -242,9 +279,11 @@ def enumerate_executables(exe: str, path: str | None = None, insert: str | None 
   if 'PATHEXT' in os.environ:
     exts = split_path(os.environ['PATHEXT'])
     possible_exe_names = tuple(f'{exe}{ext}' for ext in exts) + (exe,)
-  else:
+  elif _is_in_wsl():
     # Also try with .exe anyway, for WSL setups
     possible_exe_names = (exe, exe+'.exe')
+  else:
+    possible_exe_names = (exe)
 
   # When an insert path is specified, look there first
   if path is not None:
