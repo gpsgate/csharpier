@@ -13,7 +13,7 @@ MINVER=${MINVER:-0.18.0}
 GH_PROJECT=belav/csharpier
 BUILDX_OPERATION=${BUILDX_OPERATION:-"--push"};   # Change to --load to build only.
 OCINS="org.opencontainers.image"
-SCRIPTDIR=$( cd -P -- "$(dirname -- "$(command -v -- "$(realpath "$0")")")" && pwd -P )
+SCRIPTDIR=$(cd -P -- "$(dirname -- "$0")" && pwd -P)
 ROOTDIR=${SCRIPTDIR}/..
 DOCKERDIR=${ROOTDIR}/docker
 
