@@ -125,7 +125,7 @@ def _is_in_wsl() -> bool:
   except Exception:
     pass
 
-  return False  
+  return False
 
 def _is_in_docker() -> bool:
   """Check if the current environment is inside a Docker container.
@@ -241,6 +241,7 @@ def run_dotnet_command(argv: Sequence[str]) -> bool:
   # Then run the command passed in argv
   return run_command(argv)
 
+
 def split_path(path: str) -> list[str]:
   """Split a PATH-like environment variable into its components.
 
@@ -258,7 +259,7 @@ def split_path(path: str) -> list[str]:
 
 def enumerate_executables(exe: str, path: str | None = None, insert: str | None = None, flag: int = os.X_OK) -> list[str]:
   """Enumerate all instances of an executable using a PATH-like variable.
-  
+
   This is aware of the (Windows) PATHEXT environment variable, and will
   automatically search an equivalent .exe (when we detect that the hook is run
   in WSL2). When an insert path is specified, that path will be searched first.
@@ -279,11 +280,11 @@ def enumerate_executables(exe: str, path: str | None = None, insert: str | None 
   if 'PATHEXT' in os.environ:
     exts = split_path(os.environ['PATHEXT'])
     possible_exe_names = tuple(f'{exe}{ext}' for ext in exts) + (exe,)
-  elif _is_in_wsl():
+  elif _is_in_wsl() or os.name == 'nt':
     # Also try with .exe anyway, for WSL setups
     possible_exe_names = (exe, exe+'.exe')
   else:
-    possible_exe_names = (exe)
+    possible_exe_names = (exe,)
 
   # When an insert path is specified, look there first
   if path is not None:
@@ -303,7 +304,7 @@ def enumerate_executables(exe: str, path: str | None = None, insert: str | None 
         if resolved_path not in executables:
           logging.debug(f'Found {exe} as {resolved_path}')
           executables.append(resolved_path)
-  
+
   return executables
 
 
@@ -371,7 +372,7 @@ def run_docker(version: str | None, image: str, argv: Sequence[str] | None = Non
   if not docker:
     logging.warning('docker cannot be found in PATH!')
     return False
-  
+
   if request_version:
     version = docker_csharpier_version(docker, image)
 
@@ -453,7 +454,7 @@ def install_csharpier(version: str | None = None) -> str | None:
   When version is specified, that specific version is installed under a version-
   specific directory. This is to allow multiple versions to coexist and have a
   version pinned and under the control of pre-commit.
-  
+
   Args:
       version (str | None): The version of csharpier to install.
   Returns:
@@ -511,19 +512,19 @@ def is_version_greater_or_equal(version1: str, version2: str) -> bool:
   """
   v1_parts = [int(x) for x in version1.split('.')]
   v2_parts = [int(x) for x in version2.split('.')]
-  
+
   # Pad the shorter version with zeros
   max_len = max(len(v1_parts), len(v2_parts))
   v1_parts += [0] * (max_len - len(v1_parts))
   v2_parts += [0] * (max_len - len(v2_parts))
-  
+
   # Compare each part
   for i in range(max_len):
     if v1_parts[i] > v2_parts[i]:
       return True
     elif v1_parts[i] < v2_parts[i]:
       return False
-  
+
   # Versions are equal
   return True
 
@@ -593,12 +594,14 @@ def run_csharpier_as_binary(version: str | None, path: str | None = None, argv: 
       bool: True if csharpier ran successfully, False otherwise.
   """
   default_dir = install_tooldir(version)
+  logging.debug(f'Searching for csharpier as a direct binary in path: {path} with default_dir: {default_dir}')
 
   # List of possible binary names: name changed from dotnet-csharpier to
   # simply csharpier in version 1.0.0, so we will try both.
   binaries = ['dotnet-csharpier', 'csharpier']
   for binary in binaries:
     for exe in enumerate_executables(exe=binary, path=path, insert=default_dir):
+      logging.debug(f'Found candidate csharpier binary at {exe}, checking version...')
       csharpier = [ exe ]
       installed_version = csharpier_version(csharpier)
       if not installed_version:
@@ -748,7 +751,7 @@ def main(argv: Sequence[str] | None = None) -> int:
       # it again next time.
       if run_csharpier_as_tool(version, argv=args.args):
         return 0
-  
+
   if 'docker' in methods:
     logging.debug('Could not find csharpier locally, attempting to run it as a Docker container...')
     if run_docker(image=image, version=version, argv=args.args):
