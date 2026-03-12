@@ -1,2 +1,2 @@
-.github
-pre_commit_hooks
+.github/
+pre_commit_hooks/
